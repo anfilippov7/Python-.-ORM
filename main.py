@@ -1,10 +1,15 @@
 import json
 import sqlalchemy
 from sqlalchemy.orm import sessionmaker
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 from models import create_tables, Publisher, Book, Shop, Stock, Sale
 
-DSN = 'postgresql://postgres:1234@localhost:5432/work6'
+# DSN = 'postgresql://postgres:1234@localhost:5432/work6'
+DSN = os.getenv("DSN")
 
 engine = sqlalchemy.create_engine(DSN)
 create_tables(engine)
@@ -42,15 +47,30 @@ def main():
 
 def requests_publisher(id=None, name=None):
     if id:
-        q = session.query(Publisher).filter(Publisher.id == id)
-        for s in q.all():
-            print('Данные издателя: ', s.id, s.name)
+        query = session.query(Publisher, Shop).filter(Publisher.id == id)
+        query = query.join(Book, Book.id_publisher == Publisher.id)
+        query = query.join(Stock, Stock.id_book == Book.id)
+        query = query.join(Shop, Stock.id_shop == Shop.id)
+        records = query.all()
+        for publisher, shop in records:
+            print(f'Книги издателя "{publisher.name}" продаются в магазине: "{shop.name}"')
+        if records is None:
+            print('Издатель не найден в базе данных')
+
     elif name:
-        q = session.query(Publisher).filter(Publisher.name == name)
-        for s in q.all():
-                print('Данные издателя: ', s.id, s.name)
+
+        query = session.query(Publisher, Shop).filter(Publisher.name == name)
+        query = query.join(Book, Book.id_publisher == Publisher.id)
+        query = query.join(Stock, Stock.id_book == Book.id)
+        query = query.join(Shop, Stock.id_shop == Shop.id)
+        records = query.all()
+        for publisher, shop in records:
+            print(f'Книги издателя "{publisher.name}" продаются в магазине: "{shop.name}"')
+        if records is None:
+            print('Издатель не найден в базе данных')
     else:
         print('Не введены данные для поиска в базе данных')
 
 main()
+
 
